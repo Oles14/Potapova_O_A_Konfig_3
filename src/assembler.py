@@ -1,7 +1,7 @@
 import argparse
 import csv
 
-from src.commands import COMMANDS
+from src.commands import COMMANDS, encode_command
 
 
 def parse_command(row):
@@ -11,7 +11,7 @@ def parse_command(row):
     if name not in COMMANDS:
         raise ValueError(f"Unknown command: {name}")
 
-    opcode, widths = COMMANDS[name]
+    opcode, widths, _ = COMMANDS[name]
     arguments = [int(value) for value in row[1:]]
 
     if len(arguments) != len(widths):
@@ -36,15 +36,25 @@ def parse_program(filename):
     return program
 
 
-def print_program(program):
-    """Print instruction fields in test mode."""
+def assemble_program(program):
+    """Convert a program into a list of machine instructions."""
+    result = []
+
     for command in program:
-        fields = []
+        result.append(encode_command(command))
 
-        for name, value in zip("ABCD", command):
-            fields.append(f"{name}={value}")
+    return result
 
-        print(", ".join(fields))
+
+def print_program(program):
+    """Print machine instructions in hexadecimal format."""
+    for command in program:
+        values = []
+
+        for byte in command:
+            values.append(f"0x{byte:02X}")
+
+        print(", ".join(values))
 
 
 def main():
@@ -57,13 +67,18 @@ def main():
 
     try:
         program = parse_program(args.input)
+        machine_code = assemble_program(program)
+        data = b"".join(machine_code)
+
+        with open(args.output, "wb") as file:
+            file.write(data)
     except (OSError, ValueError) as error:
         parser.error(str(error))
 
     if args.test:
-        print_program(program)
+        print_program(machine_code)
 
-    print(f"Instructions: {len(program)}")
+    print(f"Binary size: {len(data)} bytes")
 
 
 if __name__ == "__main__":
