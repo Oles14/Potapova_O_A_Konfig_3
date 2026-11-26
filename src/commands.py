@@ -1,10 +1,16 @@
 OPCODE_BITS = 4
+OPCODE_MASK = (1 << OPCODE_BITS) - 1
+
+LOAD = 4
+READ = 9
+WRITE = 0
+SHR = 3
 
 COMMANDS = {
-    "LOAD": (4, (21, 12), 5),
-    "READ": (9, (12, 6, 12), 5),
-    "WRITE": (0, (12, 12), 4),
-    "SHR": (3, (12, 12, 12), 5),
+    "LOAD": (LOAD, (21, 12), 5),
+    "READ": (READ, (12, 6, 12), 5),
+    "WRITE": (WRITE, (12, 12), 4),
+    "SHR": (SHR, (12, 12, 12), 5),
 }
 
 
@@ -28,3 +34,24 @@ def encode_command(command):
         offset += bits
 
     return word.to_bytes(size, byteorder="little")
+
+
+def decode_command(data):
+    """Convert machine bytes into an instruction tuple."""
+    word = int.from_bytes(data, byteorder="little")
+    opcode = word & OPCODE_MASK
+    _, widths, size = get_spec(opcode)
+
+    if len(data) != size:
+        raise ValueError("Incomplete command")
+
+    fields = [opcode]
+    offset = OPCODE_BITS
+
+    for bits in widths:
+        mask = (1 << bits) - 1
+        value = (word >> offset) & mask
+        fields.append(value)
+        offset += bits
+
+    return tuple(fields)
