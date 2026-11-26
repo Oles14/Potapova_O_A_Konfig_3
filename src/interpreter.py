@@ -1,7 +1,7 @@
 import argparse
 import xml.etree.ElementTree as ET
 
-from src.commands import LOAD, READ, WRITE, OPCODE_MASK
+from src.commands import LOAD, READ, WRITE, SHR, OPCODE_MASK
 from src.commands import get_spec, decode_command
 
 ADDRESS_BITS = 12
@@ -15,7 +15,7 @@ def check_address(address):
 
 
 def execute_command(memory, command):
-    """Execute a decoded memory instruction."""
+    """Execute a decoded virtual machine instruction."""
     opcode = command[0]
 
     if opcode == LOAD:
@@ -31,6 +31,14 @@ def execute_command(memory, command):
     elif opcode == WRITE:
         _, b, c = command
         memory[b] = memory[c]
+
+    elif opcode == SHR:
+        _, b, c, d = command
+        value = memory[c]
+        shift = memory[b]
+        address = memory[d]
+        check_address(address)
+        memory[address] = value >> shift
 
     else:
         raise ValueError(f"Unsupported opcode: {opcode}")
